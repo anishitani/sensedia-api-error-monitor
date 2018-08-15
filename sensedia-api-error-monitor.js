@@ -1,5 +1,7 @@
 var request = require('request');
 var fs = require('fs');
+var argparse = require('argparse');
+
 
 var MS_PER_MINUTE = 60000;
 
@@ -310,13 +312,47 @@ writeEmail = (tsInit, tsEnd, tables) => {
 
     fs.writeFile('arquivo.txt', emailBody, function (err) {
         if (err) throw err;
-        console.log('Saved!');
     });
+
+    console.log(emailBody);
 }
 
 // BEGIN MAIN
 
-var config = JSON.parse(fs.readFileSync('configure.json', 'utf8'));
+
+var parser = new argparse.ArgumentParser({
+    version: '0.0.1',
+    addHelp: true,
+    description: 'Monitor script of Sensedia APIs'
+});
+
+
+parser.addArgument(['--config'], { help: 'Configuration file' });
+parser.addArgument(['--auth'], { help: 'Authentication token to the metrics API' });
+parser.addArgument(['--url'], { help: 'Sensedia API Manager URL' });
+parser.addArgument(['--environment'], { help: 'Environment to execute the monitor task' });
+parser.addArgument(['--window'], { help: 'Time window from now to monitor error events' });
+parser.addArgument(['--client_error'], { help: 'Accepted percentage of client error (between 0 and 1)' });
+parser.addArgument(['--server_error'], { help: 'Accepted percentage of server error (between 0 and 1)' });
+
+var args = parser.parseArgs();
+
+var config = {};
+if (args.config) {
+    config = JSON.parse(fs.readFileSync(args.config, 'utf8'));
+} else if (args.auth && args.url && args.environment && args.client_error && args.server_error) {
+    config = {
+        sensedia_auth: args.auth,
+        url: args.url,
+        environment: args.environment,
+        monitor_window_minutes: args.window,
+        client_error_accepted_percentage: args.client_error,
+        server_error_accepted_percentage: args.server_error
+    };
+} else {
+    console.log("Command:\n\tnode sensedia-api-monitor.js -h");
+    process.exit(-1);
+}
 
 var tsRangeEnd = Date.now();
 var tsRangeInit = new Date(tsRangeEnd - config.monitor_window_minutes * MS_PER_MINUTE).getTime();
