@@ -1,6 +1,5 @@
 var request = require('request');
 var fs = require('fs');
-var fsPromises = require('fs').promises;
 var argparse = require('argparse');
 
 
@@ -33,7 +32,7 @@ postRequest = (url, headers, body, acceptedStatus) => {
                     reject(failFact)
                 } else {
                     if (response.statusCode != acceptedStatus) {
-                        console.log("status code1: " + response.statusCode);
+                        console.debug("status code1: " + response.statusCode);
                         let failFact = { error: error, statusCode: response.statusCode };
                         reject(failFact);
                     } else {
@@ -56,7 +55,7 @@ getRequest = (url, headers, acceptedStatus) => {
                     reject(failFact)
                 } else {
                     if (response.statusCode != acceptedStatus) {
-                        console.log("status code1: " + response.statusCode);
+                        console.debug("status code1: " + response.statusCode);
                         let failFact = { error: error, statusCode: response.statusCode };
                         reject(failFact);
                     } else {
@@ -71,13 +70,13 @@ getRequest = (url, headers, acceptedStatus) => {
 
 rateCheck = (errorCount, totalCount, acceptedThreshold) => {
     if (!totalCount || totalCount == 0) {
-        console.log("Nenhuma chamada executada!");
+        console.debug("Nenhuma chamada executada!");
     }
     if ((errorCount / totalCount) > acceptedThreshold) {
-        console.log("Total erros: " + errorCount + " - Percentual: " + (errorCount / totalCount));
+        console.debug("Total erros: " + errorCount + " - Percentual: " + (errorCount / totalCount));
         return true;
     }
-    console.log("Nenhum erro detectado.");
+    console.debug("Nenhum erro detectado.");
     return false;
 }
 
@@ -226,7 +225,7 @@ apiErrorRateCheck = (apiId, apiName, tables) => {
             totalCalls = body["aggregations"]["2"]["buckets"]["total_calls"]["doc_count"]
             clientErrors = body["aggregations"]["2"]["buckets"]["client_errors"]["doc_count"]
             serverErrors = body["aggregations"]["2"]["buckets"]["server_errors"]["doc_count"]
-            console.log("Total de chamadas " + totalCalls + " e total de erros " + clientErrors);
+            console.debug("Total de chamadas " + totalCalls + " e total de erros " + clientErrors);
             return new Promise((resolve, reject) => {
                 if (rateCheck(clientErrors, totalCalls, config.client_error_accepted_percentage)
                     || rateCheck(serverErrors, totalCalls, config.server_error_accepted_percentage)) {
@@ -237,11 +236,11 @@ apiErrorRateCheck = (apiId, apiName, tables) => {
             });
         })
         .then(() => {
-            console.log("Too many errors!");
+            console.debug("Too many errors!");
             return postRequest(url, headers, JSON.stringify(queryErroByOperation), 200);
         })
         .then(body => {
-            console.log("Preparando envio de e-mail de erros.");
+            console.debug("Preparando envio de e-mail de erros.");
             return apiErrorTable(apiName, clientErrors, serverErrors, totalCalls, body);
         })
         .then(table => {
@@ -320,10 +319,12 @@ writeEmail = (tsInit, tsEnd, tables) => {
         let filename = dirname + '/arquivo.txt';
         fs.writeFileSync(filename, emailBody);
 
-        console.log("Arquivo escrito!");
+        console.debug("Arquivo escrito!");
+    } else {
+        fs.rmdirSync(dirname);
     }
 
-    console.log("Finalizado!");
+    console.debug("Finalizado!");
 }
 
 // BEGIN MAIN
