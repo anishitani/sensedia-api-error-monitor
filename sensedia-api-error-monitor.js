@@ -1,5 +1,6 @@
 var request = require('request');
 var fs = require('fs');
+var fsPromises = require('fs').promises;
 var argparse = require('argparse');
 
 
@@ -310,22 +311,27 @@ writeEmail = (tsInit, tsEnd, tables) => {
     emailBody = emailBody.replace(/{{dateEnd}}/g, new Date(tsEnd).toISOString());
     emailBody = emailBody.replace(/{{monitorWindowMinutes}}/g, config.monitor_window_minutes);
 
-    fs.writeFile('arquivo.txt', emailBody, function (err) {
-        if (err) throw err;
-    });
+    if(tables){
+        let dirname = './output';
+        if (!fs.existsSync(dirname)){
+            fs.mkdirSync(dirname);
+        }
+        let filename = dirname + '/arquivo.txt';
+        fs.writeFileSync(filename, emailBody);
 
-    console.log(emailBody);
+        console.log("Arquivo escrito!");
+    }
+
+    console.log("Finalizado!");
 }
 
 // BEGIN MAIN
-
 
 var parser = new argparse.ArgumentParser({
     version: '0.0.1',
     addHelp: true,
     description: 'Monitor script of Sensedia APIs'
 });
-
 
 parser.addArgument(['--config'], { help: 'Configuration file' });
 parser.addArgument(['--auth'], { help: 'Authentication token to the metrics API' });
