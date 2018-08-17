@@ -311,8 +311,8 @@ writeEmail = (tsInit, tsEnd, tables) => {
     emailBody = emailBody.replace(/{{dateEnd}}/g, new Date(tsEnd).toISOString());
     emailBody = emailBody.replace(/{{monitorWindowMinutes}}/g, config.monitor_window_minutes);
 
+    let dirname = './output';
     if(tables){
-        let dirname = './output';
         if (!fs.existsSync(dirname)){
             fs.mkdirSync(dirname);
         }
@@ -321,7 +321,9 @@ writeEmail = (tsInit, tsEnd, tables) => {
 
         console.debug("Arquivo escrito!");
     } else {
-        fs.rmdirSync(dirname);
+        if (fs.existsSync(dirname + '/arquivo.txt')){
+            fs.unlinkSync(dirname + '/arquivo.txt');
+        }
     }
 
     console.debug("Finalizado!");
