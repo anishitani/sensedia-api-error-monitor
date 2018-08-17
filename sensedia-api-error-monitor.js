@@ -19,7 +19,8 @@ main = () => {
             tablesPromise
                 .then(tables => writeEmail(tsRangeInit, tsRangeEnd, tables))
                 .catch(error => console.log(error));
-        });
+        })
+        .catch(error => console.log(error));
 }
 
 postRequest = (url, headers, body, acceptedStatus) => {
