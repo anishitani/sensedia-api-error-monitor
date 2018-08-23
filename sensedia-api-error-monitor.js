@@ -2,7 +2,6 @@ var request = require('request');
 var fs = require('fs');
 var argparse = require('argparse');
 
-
 var MS_PER_MINUTE = 60000;
 
 main = () => {
@@ -227,8 +226,10 @@ apiErrorRateCheck = (apiId, apiName, tables) => {
             serverErrors = body["aggregations"]["2"]["buckets"]["server_errors"]["doc_count"]
             console.debug("Total de chamadas " + totalCalls + " e total de erros " + clientErrors);
             return new Promise((resolve, reject) => {
-                if (rateCheck(clientErrors, totalCalls, config.client_error_accepted_percentage)
-                    || rateCheck(serverErrors, totalCalls, config.server_error_accepted_percentage)) {
+                if (totalCalls > config.minimum_calls &&
+                    (rateCheck(clientErrors, totalCalls, config.client_error_accepted_percentage)
+                    || rateCheck(serverErrors, totalCalls, config.server_error_accepted_percentage))
+                ) {
                     resolve();
                 } else {
                     reject();
@@ -312,8 +313,8 @@ writeEmail = (tsInit, tsEnd, tables) => {
     emailBody = emailBody.replace(/{{monitorWindowMinutes}}/g, config.monitor_window_minutes);
 
     let dirname = './output';
-    if(tables){
-        if (!fs.existsSync(dirname)){
+    if (tables) {
+        if (!fs.existsSync(dirname)) {
             fs.mkdirSync(dirname);
         }
         let filename = dirname + '/arquivo.txt';
@@ -321,7 +322,7 @@ writeEmail = (tsInit, tsEnd, tables) => {
 
         console.debug("Arquivo escrito!");
     } else {
-        if (fs.existsSync(dirname + '/arquivo.txt')){
+        if (fs.existsSync(dirname + '/arquivo.txt')) {
             fs.unlinkSync(dirname + '/arquivo.txt');
         }
     }
@@ -337,27 +338,26 @@ var parser = new argparse.ArgumentParser({
     description: 'Monitor script of Sensedia APIs'
 });
 
-parser.addArgument(['--config'], { help: 'Configuration file' });
-parser.addArgument(['--auth'], { help: 'Authentication token to the metrics API' });
-parser.addArgument(['--url'], { help: 'Sensedia API Manager URL' });
-parser.addArgument(['--environment'], { help: 'Environment to execute the monitor task' });
-parser.addArgument(['--window'], { help: 'Time window from now to monitor error events' });
-parser.addArgument(['--client_error'], { help: 'Accepted percentage of client error (between 0 and 1)' });
-parser.addArgument(['--server_error'], { help: 'Accepted percentage of server error (between 0 and 1)' });
+parser.addArgument(['--auth'], { help: 'Chave de autenticação para acesso às APIs de métricas da Sensedia' });
+parser.addArgument(['--url'], { help: 'Endereço do Manager da Sensedia' });
+parser.addArgument(['--environment'], { help: 'Ambiente onde deve ser executada a operação' });
+parser.addArgument(['--window'], { help: 'Janela de tempo para avaliação' });
+parser.addArgument(['--client_error'], { help: 'Percentual de erros de cliente aceitos (entre 0 e 1)' });
+parser.addArgument(['--server_error'], { help: 'Percentual de erros de servidor aceitos (entre 0 e 1)' });
+parser.addArgument(['--minimum_calls'], { help: 'Quantidade mínima de chamadas para avaliação (default 0)' });
 
 var args = parser.parseArgs();
 
 var config = {};
-if (args.config) {
-    config = JSON.parse(fs.readFileSync(args.config, 'utf8'));
-} else if (args.auth && args.url && args.environment && args.client_error && args.server_error) {
+if (args.auth && args.url && args.environment && args.client_error && args.server_error) {
     config = {
         sensedia_auth: args.auth,
         url: args.url,
         environment: args.environment,
         monitor_window_minutes: args.window,
         client_error_accepted_percentage: args.client_error,
-        server_error_accepted_percentage: args.server_error
+        server_error_accepted_percentage: args.server_error,
+        minimum_calls: args.minimum_calls ? args.minimum_calls : 0
     };
 } else {
     console.log("Command:\n\tnode sensedia-api-monitor.js -h");
